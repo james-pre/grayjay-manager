@@ -137,8 +137,8 @@ check_install() {
 }
 
 do_install() {
-
-	if [[ $(check_install $verbose) -eq 0 ]]; then
+	check_install $verbose
+	if [[ $? -eq 0 ]]; then
 		echo "Grayjay is already installed."
 		cleanup
 		exit 0
