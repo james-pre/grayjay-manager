@@ -1,21 +1,29 @@
 #!/usr/bin/env bash
+
 # A script to manage Grayjay installations
 
 # Configuration / Defaults
-SCRIPT_VERSION="prototype-1"
-FETCH_URL="https://updater.grayjay.app/Apps/Grayjay.Desktop/Grayjay.Desktop-linux-x64.zip"
+version="prototype-1"
+zip_url="https://updater.grayjay.app/Apps/Grayjay.Desktop/Grayjay.Desktop-linux-x64.zip"
+
+uid=$(id -u)
 
 # Global Variables
-VERBOSE=0
-LOCAL_INSTALL=0
-COMMAND=""
-TMP_DIR="/tmp/grayjay-manager"
-mkdir -p "$TMP_DIR"
-PREFIX=""
-installation=""
-binary_link=""
+verbose=false
+is_local=false
+command=""
+tmp_dir="/tmp/grayjay-manager"
+mkdir -p "$tmp_dir"
 
-# Helpers
+if [[ $uid -eq 0 ]]; then
+	installation="/opt/grayjay"
+	binaries="/usr/local/bin"
+else
+	installation="$HOME/.local/opt/grayjay"
+	binaries="$HOME/.local/bin"
+fi
+binary_link="$binaries/grayjay"
+
 print_help() {
 	cat <<EOF
 Usage: $(basename "$0") [flags] <command>
@@ -23,7 +31,7 @@ Usage: $(basename "$0") [flags] <command>
 Flags:
     -w, --verbose   Enable verbose output
     -v, --version   Print the current version and exit
-        --local     Perform a local installation in \$HOME/.local
+        --local     Perform a local installation in ~/.local
     -h, --help      Print this help message
 
 Commands:
@@ -35,28 +43,31 @@ Commands:
 EOF
 }
 
+# Credit: Dave Dopson, https://stackoverflow.com/a/246128/17637456
+script_directory=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+
 # Clean up temporary files
 cleanup() {
-	if [[ -n "$TMP_DIR" && -d "$TMP_DIR" ]]; then
-		rm -rf "$TMP_DIR/*"
+	if [[ -n "$tmp_dir" && -d "$tmp_dir" ]]; then
+		rm -rf "$tmp_dir/*"
 	fi
 }
 
 # Download and unpack Grayjay into a temporary directory.
 fetch_gj() {
-	pushd "$TMP_DIR" >/dev/null 2>&1
+	pushd "$tmp_dir" >/dev/null 2>&1
 
-	[[ $VERBOSE -eq 1 ]] && echo "Downloading from $FETCH_URL"
-	curl -sLO "$FETCH_URL" || {
-		echo "Error: Failed to download from $FETCH_URL"
+	$verbose && echo "Downloading from $zip_url"
+	curl -sLO "$zip_url" || {
+		echo "Error: Failed to download from $zip_url"
 		cleanup
 		exit 1
 	}
 
-	ZIP_FILE="$(basename "$FETCH_URL")"
-	[[ $VERBOSE -eq 1 ]] && echo "Unzipping $ZIP_FILE"
-	unzip -q "$ZIP_FILE" || {
-		echo "Error: Failed to unzip $ZIP_FILE"
+	local zip_file="$(basename "$zip_url")"
+	$verbose && echo "Unzipping $zip_file"
+	unzip -q "$zip_file" || {
+		echo "Error: Failed to unzip $zip_file"
 		cleanup
 		exit 1
 	}
@@ -68,7 +79,7 @@ fetch_gj() {
 		local single_dir
 		single_dir=$(find . -mindepth 1 -maxdepth 1 -type d | head -n 1)
 		if [[ -n "$single_dir" && "$single_dir" != "." ]]; then
-			[[ $VERBOSE -eq 1 ]] && echo "Flattening single directory: $single_dir"
+			$verbose && echo "Flattening single directory: $single_dir"
 			shopt -s dotglob
 			mv "$single_dir"/* .
 			rmdir "$single_dir"
@@ -79,11 +90,11 @@ fetch_gj() {
 	popd >/dev/null 2>&1
 }
 
-# Compare fetched contents in TMP_DIR to the existing install directory.
+# Compare fetched contents in tmp_dir to the existing install directory.
 # Return 0 if differences exist, 1 if no difference.
 compare_fetched_to_install() {
 	[[ ! -d "$installation" ]] && return 0
-	diff -r "$TMP_DIR" "$installation" >/dev/null 2>&1
+	diff -r "$tmp_dir" "$installation" >/dev/null 2>&1
 	if [[ $? -eq 0 ]]; then
 		return 1  # no differences
 	else
@@ -95,21 +106,21 @@ compare_fetched_to_install() {
 do_install() {
 	fetch_gj
 
-	[[ $VERBOSE -eq 1 ]] && echo "Creating installation directory: $installation"
+	$verbose && echo "Creating installation directory: $installation"
 	mkdir -p "$installation" || {
 		echo "Error: Failed to create directory $installation"
 		cleanup
 		exit 1
 	}
 
-	[[ $VERBOSE -eq 1 ]] && echo "Copying files to $installation"
-	cp -r "$TMP_DIR"/* "$installation"/ || {
+	$verbose && echo "Copying files to $installation"
+	cp -r "$tmp_dir"/* "$installation"/ || {
 		echo "Error: Failed to copy files to $installation"
 		cleanup
 		exit 1
 	}
 
-	[[ $VERBOSE -eq 1 ]] && echo "Creating symlink: $binary_link -> $installation/Grayjay"
+	$verbose && echo "Creating symlink: $binary_link -> $installation/Grayjay"
 	ln -sf "$installation/Grayjay" "$binary_link" || {
 		echo "Error: Failed to create symlink $binary_link"
 		cleanup
@@ -117,7 +128,7 @@ do_install() {
 	}
 
 	cleanup
-	[[ $VERBOSE -eq 1 ]] && echo "Installation complete."
+	$verbose && echo "Installation complete."
 	exit 0
 }
 
@@ -135,12 +146,12 @@ do_remove() {
 	esac
 
 	[[ -d "$installation" ]] && {
-		[[ $VERBOSE -eq 1 ]] && echo "Removing installation directory: $installation"
+		$verbose && echo "Removing installation directory: $installation"
 		rm -rf "$installation"
 	}
 
 	if [[ -L "$binary_link" || -f "$binary_link" ]]; then
-		[[ $VERBOSE -eq 1 ]] && echo "Removing symlink: $binary_link"
+		$verbose && echo "Removing symlink: $binary_link"
 		rm -f "$binary_link"
 	fi
 
@@ -157,9 +168,9 @@ do_update() {
 		exit 0
 	fi
 
-	[[ $VERBOSE -eq 1 ]] && echo "Updating files in $installation"
+	$verbose && echo "Updating files in $installation"
 	mkdir -p "$installation"
-	rsync -a "$TMP_DIR"/ "$installation"/ || {
+	rsync -a "$tmp_dir"/ "$installation"/ || {
 		echo "Error: Failed to sync updated files to $installation"
 		cleanup
 		exit 1
@@ -199,7 +210,7 @@ do_check() {
 }
 
 do_clean() {
-	[[ $VERBOSE -eq 1 ]] && echo "Running cleanup."
+	$verbose && echo "Running cleanup."
 	cleanup
 	exit 0
 }
@@ -208,15 +219,15 @@ do_clean() {
 while [[ $# -gt 0 ]]; do
 	case "$1" in
 		-w|--verbose)
-			VERBOSE=1
+			verbose=true
 			shift
 			;;
 		-v|--version)
-			echo "$SCRIPT_VERSION"
+			echo "$version"
 			exit 0
 			;;
 		--local)
-			LOCAL_INSTALL=1
+			is_local=true
 			shift
 			;;
 		-h|--help)
@@ -224,10 +235,10 @@ while [[ $# -gt 0 ]]; do
 			exit 0
 			;;
 		i|install|rm|remove|up|update|check|clean)
-			if [[ -z "$COMMAND" ]]; then
-				COMMAND="$1"
+			if [[ -z "$command" ]]; then
+				command="$1"
 			else
-				echo "Error: Multiple commands specified ('$COMMAND' and '$1')."
+				echo "Error: Multiple commands specified ('$command' and '$1')."
 				cleanup
 				exit 1
 			fi
@@ -242,41 +253,26 @@ while [[ $# -gt 0 ]]; do
 	esac
 done
 
-if [[ -z "$COMMAND" ]]; then
+if [[ -z "$command" ]]; then
 	echo "Error: No command provided."
 	print_help
 	exit 1
 fi
 
-# Root vs. Local checks & prefix setup
-if [[ $(id -u) -eq 0 ]]; then
-	# user is root
-	if [[ $LOCAL_INSTALL -eq 1 ]]; then
-		echo "Error: --local cannot be used as root."
-		cleanup
-		exit 1
-	fi
-	PREFIX=""
-else
-	# user is not root
-	if [[ $LOCAL_INSTALL -eq 0 ]]; then
-		echo "Error: You must use --local when not running as root."
-		cleanup
-		exit 1
-	fi
-	PREFIX="$HOME/.local"
-	mkdir -p "$PREFIX/bin"
+if [[ $uid -eq 0 && $is_local = true ]]; then
+	echo "Error: --local cannot be used as root."
+	exit 1
 fi
 
-installation="$PREFIX/opt/grayjay"
-binary_link="$PREFIX/bin/grayjay"
-if [[ $LOCAL_INSTALL -eq 0 ]]; then
-	binary_link="/usr/local/bin/grayjay"
+if [[ $uid -ne 0 && $is_local = false ]]; then
+	echo "Error: You must use --local when not running as root."
+	exit 1
 fi
+
 mkdir -p "$(dirname "$installation")" 2>/dev/null || true
 
 # Dispatch
-case "$COMMAND" in
+case "$command" in
 	i|install)
 		do_install
 		;;
@@ -293,7 +289,7 @@ case "$COMMAND" in
 		do_clean
 		;;
 	*)
-		echo "Error: Unknown command '$COMMAND'"
+		echo "Error: Unknown command '$command'"
 		cleanup
 		exit 1
 		;;
