@@ -35,9 +35,9 @@ Flags:
     -h, --help      Print this help message
 
 Commands:
-    i, install      Install Grayjay
-    rm, remove      Remove Grayjay
-    up, update      Update Grayjay
+    install      Install Grayjay
+    remove      Remove Grayjay
+    update      Update Grayjay
     check           Check that Grayjay is properly installed
     clean           Clean up temporary files
 EOF
@@ -240,7 +240,7 @@ while [[ $# -gt 0 ]]; do
 			print_help
 			exit 0
 			;;
-		i|install|rm|remove|up|update|check|clean)
+		install|remove|update|check|clean)
 			if [[ -z "$command" ]]; then
 				command="$1"
 			else
@@ -279,13 +279,13 @@ mkdir -p "$(dirname "$installation")" 2>/dev/null || true
 
 # Dispatch
 case "$command" in
-	i|install)
+	install)
 		do_install
 		;;
-	rm|remove)
+	remove)
 		do_remove
 		;;
-	up|update)
+	update)
 		do_update
 		;;
 	check)
