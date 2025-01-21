@@ -48,6 +48,7 @@ script_directory=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 
 # Clean up temporary files
 cleanup() {
+	${1:-$verbose} && echo "Running cleanup."
 	if [[ -n "$tmp_dir" && -d "$tmp_dir" ]]; then
 		rm -rf "$tmp_dir/*"
 	fi
@@ -57,7 +58,7 @@ cleanup() {
 fetch_gj() {
 	pushd "$tmp_dir" >/dev/null 2>&1
 
-	$verbose && echo "Downloading from $zip_url"
+	echo "Downloading: $zip_url"
 	curl -sLO "$zip_url" || {
 		echo "Error: Failed to download from $zip_url"
 		cleanup
@@ -65,7 +66,7 @@ fetch_gj() {
 	}
 
 	local zip_file="$(basename "$zip_url")"
-	$verbose && echo "Unzipping $zip_file"
+	echo "Unzipping: $zip_file"
 	unzip -q "$zip_file" || {
 		echo "Error: Failed to unzip $zip_file"
 		cleanup
@@ -102,8 +103,47 @@ compare_fetched_to_install() {
 	fi
 }
 
-# Subcommand Implementations
+check_install() {
+	local output=${1:-false}
+
+	$output && echo "Checking Grayjay installation."
+
+	if [[ ! -d "$installation" ]]; then
+		$output && echo "Missing installation: $installation"
+		return 1
+	fi
+
+	$output && echo "Found Grayjay: $installation"
+
+	if [[ ! -L "$binary_link" ]]; then
+		$output && echo "Missing link: $binary_link"
+		return 1
+	fi
+
+	$output && echo "Found link: $binary_link"
+
+	local target="$(readlink "$binary_link")"
+
+	if [[ "$target" != "$installation/Grayjay" ]]; then
+		$output && echo "Invalid link target: $target"
+		return 1;
+	fi
+
+	$output && echo "Link points to binary: $target"
+
+	$output && echo "Grayjay is properly installed."
+
+	return 0;
+}
+
 do_install() {
+
+	if [[ $(check_install $verbose) -eq 0 ]]; then
+		echo "Grayjay is already installed."
+		cleanup
+		exit 0
+	fi
+
 	fetch_gj
 
 	$verbose && echo "Creating installation directory: $installation"
@@ -181,40 +221,6 @@ do_update() {
 	exit 0
 }
 
-do_check() {
-	if [[ ! -d "$installation" ]]; then
-		echo "Missing installation: $installation"
-		exit 1
-	fi
-
-	echo "Found Grayjay: $installation"
-
-	if [[ ! -L "$binary_link" ]]; then
-		echo "Missing link: $binary_link"
-		exit 1
-	fi
-
-	echo "Found link: $binary_link"
-
-	local target="$(readlink "$binary_link")"
-
-	if [[ "$target" != "$installation/Grayjay" ]]; then
-		echo "Invalid link target: $target"
-		exit 1;
-	fi
-
-	echo "Link points to binary: $target"
-
-	echo "Grayjay is properly installed."
-
-}
-
-do_clean() {
-	$verbose && echo "Running cleanup."
-	cleanup
-	exit 0
-}
-
 # Argument Parsing
 while [[ $# -gt 0 ]]; do
 	case "$1" in
@@ -283,10 +289,10 @@ case "$command" in
 		do_update
 		;;
 	check)
-		do_check
+		exit $(check_install true)
 		;;
 	clean)
-		do_clean
+		cleanup true
 		;;
 	*)
 		echo "Error: Unknown command '$command'"
