@@ -318,7 +318,8 @@ case "$command" in
 		do_update
 		;;
 	check)
-		exit $(check_install true)
+		check_install true
+		exit $?
 		;;
 	clean)
 		cleanup true
