@@ -10,30 +10,10 @@ uid=$(id -u)
 
 # Global Variables
 verbose=false
-is_local=false
+is_system=false
 command=""
 tmp_dir="/tmp/grayjay-manager"
 mkdir -p "$tmp_dir"
-
-if [[ $uid -eq 0 ]]; then
-	installation="/opt/grayjay"
-	binaries="/usr/local/bin"
-	applications="/usr/share/applications"
-else
-	installation="$HOME/.local/opt/grayjay"
-	binaries="$HOME/.local/bin"
-	applications="$HOME/.local/share/applications"
-fi
-binary_link="$binaries/grayjay"
-desktop="$applications/grayjay.desktop"
-
-desktop_file_content="[Desktop Entry]
-Name=Grayjay
-Exec=$binary_link
-Icon=$installation/grayjay.png
-Type=Application
-Categories=Utility;
-" 
 
 print_help() {
 	cat <<EOF
@@ -263,8 +243,8 @@ while [[ $# -gt 0 ]]; do
 			echo "$version"
 			exit 0
 			;;
-		--local)
-			is_local=true
+		--system)
+			is_system=true
 			shift
 			;;
 		-h|--help)
@@ -296,15 +276,32 @@ if [[ -z "$command" ]]; then
 	exit 1
 fi
 
-if [[ $uid -eq 0 && $is_local = true ]]; then
-	echo "Error: --local cannot be used as root."
+
+if [[ $uid -ne 0 && $is_system = true ]]; then
+	echo "Error: You must root to use --system"
 	exit 1
 fi
 
-if [[ $uid -ne 0 && $is_local = false ]]; then
-	echo "Error: You must use --local when not running as root."
-	exit 1
+if $is_system; then
+	installation="/opt/grayjay"
+	binaries="/usr/local/bin"
+	applications="/usr/share/applications"
+else
+	installation="$HOME/.local/opt/grayjay"
+	binaries="$HOME/.local/bin"
+	applications="$HOME/.local/share/applications"
 fi
+binary_link="$binaries/grayjay"
+desktop="$applications/grayjay.desktop"
+
+desktop_file_content="[Desktop Entry]
+Name=Grayjay
+Exec=$installation/Grayjay
+Icon=$installation/grayjay.png
+Type=Application
+Categories=Utility;
+" 
+
 
 mkdir -p "$(dirname "$installation")" 2>/dev/null || true
 
