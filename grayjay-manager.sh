@@ -47,9 +47,11 @@ cleanup() {
 
 # Download and unpack Grayjay into a temporary directory.
 fetch_gj() {
+	echo "Fetching latest release."
+
 	pushd "$tmp_dir" >/dev/null 2>&1
 
-	echo "Downloading: $zip_url"
+	$verbose && echo "Downloading: $zip_url"
 	curl -sLO "$zip_url" || {
 		echo "Error: Failed to download from $zip_url"
 		cleanup
@@ -57,7 +59,7 @@ fetch_gj() {
 	}
 
 	local zip_file="$(basename "$zip_url")"
-	echo "Unzipping: $zip_file"
+	$verbose && echo "Unzipping: $zip_file"
 	unzip -q "$zip_file" || {
 		echo "Error: Failed to unzip $zip_file"
 		cleanup
@@ -97,7 +99,7 @@ compare_fetched_to_install() {
 check_install() {
 	local output=${1:-false}
 
-	$output && echo "Checking Grayjay installation."
+	echo "Checking for Grayjay installation."
 
 	if [[ ! -d "$installation" ]]; then
 		$output && echo "Missing installation: $installation"
@@ -174,7 +176,7 @@ do_install() {
 	}
 
 	cleanup
-	$verbose && echo "Installation complete."
+	echo "Installation complete."
 	exit 0
 }
 
@@ -207,6 +209,7 @@ do_remove() {
 	fi
 
 	cleanup
+	echo "Removed Grayjay."
 	exit 0
 }
 
