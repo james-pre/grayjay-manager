@@ -18,11 +18,22 @@ mkdir -p "$tmp_dir"
 if [[ $uid -eq 0 ]]; then
 	installation="/opt/grayjay"
 	binaries="/usr/local/bin"
+	applications="/usr/share/applications"
 else
 	installation="$HOME/.local/opt/grayjay"
 	binaries="$HOME/.local/bin"
+	applications="$HOME/.local/share/applications"
 fi
 binary_link="$binaries/grayjay"
+desktop="$applications/grayjay.desktop"
+
+desktop_file_content="[Desktop Entry]
+Name=Grayjay
+Exec=$binary_link
+Icon=$installation/grayjay.png
+Type=Application
+Categories=Utility;
+" 
 
 print_help() {
 	cat <<EOF
@@ -50,7 +61,7 @@ script_directory=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && 
 cleanup() {
 	${1:-$verbose} && echo "Running cleanup."
 	if [[ -n "$tmp_dir" && -d "$tmp_dir" ]]; then
-		rm -rf "$tmp_dir/*"
+		rm -rf "$tmp_dir"/*
 	fi
 }
 
@@ -131,6 +142,14 @@ check_install() {
 
 	$output && echo "Link points to binary: $target"
 
+
+	if [[ ! -f "$desktop" ]]; then
+		$output && echo "Missing application shortcut: $desktop"
+		return 1
+	fi
+
+	$output && echo "Found application shortcut: $desktop"
+
 	$output && echo "Grayjay is properly installed."
 
 	return 0;
@@ -154,7 +173,7 @@ do_install() {
 	}
 
 	$verbose && echo "Copying files to $installation"
-	cp -r "$tmp_dir"/* "$installation"/ || {
+	find "$tmp_dir" -mindepth 1 \( ! -name "$(basename "$zip_url")" \) -exec cp -r {} "$installation/" \; || {
 		echo "Error: Failed to copy files to $installation"
 		cleanup
 		exit 1
@@ -163,6 +182,13 @@ do_install() {
 	$verbose && echo "Creating symlink: $binary_link -> $installation/Grayjay"
 	ln -sf "$installation/Grayjay" "$binary_link" || {
 		echo "Error: Failed to create symlink $binary_link"
+		cleanup
+		exit 1
+	}
+
+	$verbose && echo "Creating application shortcut: $desktop"
+	echo "$desktop_file_content" > "$desktop" || {
+		echo "Error: Failed to create application shortcut"
 		cleanup
 		exit 1
 	}
@@ -186,13 +212,18 @@ do_remove() {
 	esac
 
 	[[ -d "$installation" ]] && {
-		$verbose && echo "Removing installation directory: $installation"
+		$verbose && echo "Removing: $installation"
 		rm -rf "$installation"
 	}
 
 	if [[ -L "$binary_link" || -f "$binary_link" ]]; then
-		$verbose && echo "Removing symlink: $binary_link"
+		$verbose && echo "Removing: $binary_link"
 		rm -f "$binary_link"
+	fi
+
+	if [[ -f "$desktop" ]]; then
+		$verbose && echo "Removing: $desktop"
+		rm -f "$desktop"
 	fi
 
 	cleanup
