@@ -22,15 +22,15 @@ Usage: $(basename "$0") [flags] <command>
 Flags:
     -w, --verbose   Enable verbose output
     -v, --version   Print the current version and exit
-        --local     Perform a local installation in ~/.local
+        --system    System wide installation
     -h, --help      Print this help message
 
 Commands:
-    install      Install Grayjay
-    remove      Remove Grayjay
-    update      Update Grayjay
-    check           Check that Grayjay is properly installed
-    clean           Clean up temporary files
+    install    Install Grayjay
+    remove     Remove Grayjay
+    update     Update Grayjay
+    check      Check that Grayjay is properly installed
+    clean      Clean up temporary files
 EOF
 }
 
