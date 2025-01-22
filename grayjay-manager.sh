@@ -297,6 +297,7 @@ desktop="$applications/grayjay.desktop"
 desktop_file_content="[Desktop Entry]
 Name=Grayjay
 Exec=$installation/Grayjay
+Path=$installation
 Icon=$installation/grayjay.png
 Type=Application
 Categories=Utility;
