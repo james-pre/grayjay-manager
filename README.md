@@ -1,19 +1,19 @@
 # Grayjay Manager
 
-`grayjay-manager` is a CLI utility for managing your Grayjay desktop installation(s).
+`grayjay-manager` is a CLI utility for managing your Grayjay Desktop installation(s).
 
 It is a work in progress!
 
 ## Usage
 
 ```
-grayjay-manager [flags] <command>
+grayjay-manager [options] <command>
 
-Flags:
+Options:
     -w, --verbose   Enable verbose output
     -v, --version   Print the current version and exit
-        --system    System wide installation
     -h, --help      Print this help message
+        --system    System wide installation
 
 Commands:
     install    Install Grayjay

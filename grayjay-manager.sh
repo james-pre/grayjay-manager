@@ -17,13 +17,13 @@ mkdir -p "$tmp_dir"
 
 print_help() {
 	cat <<EOF
-Usage: $(basename "$0") [flags] <command>
+Usage: $(basename "$0") [options] <command>
 
-Flags:
+Options:
     -w, --verbose   Enable verbose output
     -v, --version   Print the current version and exit
-        --system    System wide installation
     -h, --help      Print this help message
+        --system    System wide installation
 
 Commands:
     install    Install Grayjay
