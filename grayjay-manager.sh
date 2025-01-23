@@ -299,7 +299,7 @@ desktop="$applications/grayjay.desktop"
 
 desktop_file_content="[Desktop Entry]
 Name=Grayjay
-Exec=$installation/Grayjay
+Exec=$installation/Grayjay --no-sandbox
 Path=$installation
 Icon=$installation/grayjay.png
 Type=Application
