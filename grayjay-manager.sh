@@ -306,7 +306,7 @@ Type=Application
 Categories=Utility;
 " 
 
-
+mkdir -p "$binaries" "$applications"
 mkdir -p "$(dirname "$installation")" 2>/dev/null || true
 
 # Dispatch
