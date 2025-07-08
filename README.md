@@ -1,8 +1,10 @@
 # Grayjay Manager
 
-`grayjay-manager` is a CLI utility for managing your Grayjay Desktop installation(s).
+> [!IMPORTANT]
+> Grayjay Desktop is now distributed as a Flatpak.
+> The official installation will likely work better, please use that instead.
 
-It is a work in progress!
+`grayjay-manager` is a CLI utility for managing your Grayjay Desktop installation(s).
 
 ## Usage
 
